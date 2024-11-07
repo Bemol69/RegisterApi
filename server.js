@@ -10,26 +10,39 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Configuración de la base de datos usando variables de entorno
-const db = mysql.createConnection({
+// Configuración de la base de datos usando un pool de conexiones
+let db = mysql.createPool({
   host: process.env.MYSQL_ADDON_HOST || 'btobfr8tsydxjfr145sr-mysql.services.clever-cloud.com',
   user: process.env.MYSQL_ADDON_USER || 'udz2sujon3ngyznn',
   password: process.env.MYSQL_ADDON_PASSWORD || 'RI9uUntNUwrdGkjdkALk',
   database: process.env.MYSQL_ADDON_DB || 'btobfr8tsydxjfr145sr',
-  port: process.env.MYSQL_ADDON_PORT || 3306
+  port: process.env.MYSQL_ADDON_PORT || 3306,
+  connectionLimit: 10 // Ajusta este límite según tus necesidades
 });
 
-// Manejo mejorado de la conexión a la base de datos
-db.connect(err => {
-  if (err) {
-    console.error('Error conectando a la base de datos:', err);
-    return;
-  }
-  console.log('Conectado a MySQL en Clever Cloud');
-});
+// Manejo mejorado de la reconexión en caso de error
+function handleDisconnect() {
+  db = mysql.createPool({
+    host: process.env.MYSQL_ADDON_HOST || 'btobfr8tsydxjfr145sr-mysql.services.clever-cloud.com',
+    user: process.env.MYSQL_ADDON_USER || 'udz2sujon3ngyznn',
+    password: process.env.MYSQL_ADDON_PASSWORD || 'RI9uUntNUwrdGkjdkALk',
+    database: process.env.MYSQL_ADDON_DB || 'btobfr8tsydxjfr145sr',
+    port: process.env.MYSQL_ADDON_PORT || 3306,
+    connectionLimit: 10
+  });
 
-// Manejo de reconexión
-db.on('error', function(err) {
+  db.getConnection((err) => {
+    if (err) {
+      console.error('Error reconectando a la base de datos:', err);
+      setTimeout(handleDisconnect, 2000); // Reintenta después de un corto tiempo
+    } else {
+      console.log('Reconectado a MySQL en Clever Cloud');
+    }
+  });
+}
+
+// Escuchar eventos de error en el pool de conexiones
+db.on('error', (err) => {
   console.error('Error de base de datos:', err);
   if (err.code === 'PROTOCOL_CONNECTION_LOST') {
     handleDisconnect();
@@ -37,15 +50,6 @@ db.on('error', function(err) {
     throw err;
   }
 });
-
-function handleDisconnect() {
-  db.connect(function(err) {
-    if (err) {
-      console.error('Error reconectando:', err);
-      setTimeout(handleDisconnect, 2000);
-    }
-  });
-}
 
 // Ruta de prueba para verificar que el servidor está funcionando
 app.get('/', (req, res) => {
