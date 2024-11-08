@@ -189,3 +189,52 @@ app.get('/api/alumno/:id', (req, res) => {
 });
 
 
+
+// Ruta para obtener la asistencia de un alumno
+app.get('/api/asistencia/:id', (req, res) => {
+  const alumnoId = req.params.id;
+
+  // Consulta para obtener los datos de asistencia del alumno
+  const asistenciaQuery = `
+    SELECT 
+      r.nombre AS ramo, 
+      COUNT(*) AS total_clases, 
+      SUM(CASE WHEN a.asistio = 1 THEN 1 ELSE 0 END) AS clases_asistidas 
+    FROM 
+      clases c 
+    JOIN 
+      asistencia a ON a.clase_id = c.id 
+    JOIN 
+      ramos r ON r.id = c.ramo_id 
+    WHERE 
+      a.alumno_id = ? 
+    GROUP BY 
+      r.id
+  `;
+
+  db.query(asistenciaQuery, [alumnoId], (err, asistenciaResults) => {
+    if (err) {
+      console.error('Error al obtener asistencia del alumno:', err);
+      return res.status(500).json({ success: false, message: 'Error al obtener la asistencia del alumno' });
+    }
+
+    if (asistenciaResults.length === 0) {
+      return res.status(404).json({ success: false, message: 'No se encontraron registros de asistencia para este alumno' });
+    }
+
+    // Calculamos el porcentaje de asistencia para cada ramo
+    const asistencias = asistenciaResults.map(asistencia => {
+      const porcentaje = (asistencia.clases_asistidas / asistencia.total_clases) * 100;
+      return {
+        ramo: asistencia.ramo,
+        total_clases: asistencia.total_clases,
+        clases_asistidas: asistencia.clases_asistidas,
+        porcentaje: porcentaje.toFixed(2), // Redondear el porcentaje a 2 decimales
+      };
+    });
+
+    res.json({ asistencias });
+  });
+});
+
+
