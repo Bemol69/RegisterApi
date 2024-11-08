@@ -248,13 +248,13 @@ app.get('/api/ramos/:alumnoId', (req, res) => {
     JOIN estudiante_ramos er ON r.id = er.ramo_id
     WHERE er.estudiante_id = ?`;
 
-  db.query(query, [alumnoId], (err, result) => {
-    if (err) {
-      console.error('Error al obtener los ramos', err);
-      return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
-    }
-    res.json({ ramos: result });
-  });
+ db.query(query, [alumnoId], (err, result) => {
+  if (err) {
+    console.error('Error al obtener los ramos', err); // Esta línea debería mostrar el error en el log del servidor
+    return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
+  }
+  res.json({ ramos: result });
+});
 });
 
 
