@@ -168,7 +168,6 @@ process.on('unhandledRejection', (reason, promise) => {
 app.get('/api/alumno/:id', (req, res) => {
   const alumnoId = req.params.id;
 
-  // Obtener el nombre completo y la carrera del alumno
   const alumnoQuery = `SELECT CONCAT(nombre, ' ', apellido) AS nombre_completo, carrera FROM usuarios WHERE id = ?`;
   db.query(alumnoQuery, [alumnoId], (err, alumnoResults) => {
     if (err) {
