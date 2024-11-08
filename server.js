@@ -164,51 +164,26 @@ process.on('unhandledRejection', (reason, promise) => {
 
 
 
-
-
 // Ruta para obtener la información del alumno
 app.get('/api/alumno/:id', (req, res) => {
   const alumnoId = req.params.id;
-  
-  // Obtener nombre completo y carrera del alumno
-  const alumnoQuery = `SELECT usuario, carrera FROM usuarios WHERE id = ?`;
+
+  // Obtener el nombre completo y la carrera del alumno
+  const alumnoQuery = `SELECT CONCAT(nombre, ' ', apellido) AS nombre_completo, carrera FROM usuarios WHERE id = ?`;
   db.query(alumnoQuery, [alumnoId], (err, alumnoResults) => {
     if (err) {
       console.error('Error al obtener datos del alumno:', err);
       return res.status(500).json({ success: false, message: 'Error al obtener datos del alumno' });
     }
-    
+
     if (alumnoResults.length === 0) {
       return res.status(404).json({ success: false, message: 'Alumno no encontrado' });
     }
 
     const alumno = alumnoResults[0];
 
-    // Obtener los ramos y porcentaje de asistencia
-    const asistenciaQuery = `
-      SELECT c.nombre AS ramo, 
-             COUNT(a.id) AS total_asistencias, 
-             SUM(a.estado) AS asistencias 
-      FROM clases c
-      JOIN asistencias a ON a.clase_id = c.id
-      WHERE a.estudiante_id = ?
-      GROUP BY c.id`;
-    
-    db.query(asistenciaQuery, [alumnoId], (err, asistenciaResults) => {
-      if (err) {
-        console.error('Error al obtener asistencia:', err);
-        return res.status(500).json({ success: false, message: 'Error al obtener asistencia' });
-      }
-      
-      const data = {
-        alumno: alumno,
-        asistencia: asistenciaResults.map(ramo => ({
-          ...ramo,
-          porcentaje: (ramo.asistencias / ramo.total_asistencias) * 100
-        }))
-      };
-      
-      res.json(data);
+    res.json({
+      alumno: alumno, // Enviamos solo los datos relevantes: nombre completo y carrera
     });
   });
 });
