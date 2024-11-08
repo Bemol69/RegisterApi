@@ -238,3 +238,23 @@ app.get('/api/asistencia/:id', (req, res) => {
 });
 
 
+// Ruta para obtener los ramos del alumno
+app.get('/api/ramos/:alumnoId', (req, res) => {
+  const alumnoId = req.params.alumnoId;
+
+  const query = `
+    SELECT r.nombre_ramo
+    FROM ramos r
+    JOIN estudiante_ramos er ON r.id = er.ramo_id
+    WHERE er.estudiante_id = ?`;
+
+  db.query(query, [alumnoId], (err, result) => {
+    if (err) {
+      console.error('Error al obtener los ramos', err);
+      return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
+    }
+    res.json({ ramos: result });
+  });
+});
+
+
