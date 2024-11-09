@@ -213,12 +213,12 @@ app.get('/api/ramos/:alumnoId', (req, res) => {
 
 
 
-// Endpoint para obtener ramos y clases totales
+// Ruta para obtener los ramos y clases totales del alumno
 app.get('/api/ramos/:id', (req, res) => {
   const alumnoId = req.params.id;
   
   // Consulta SQL para obtener ramos y clases totales
-  const query = 
+  const query = `
     SELECT 
         r.nombre_ramo,
         COUNT(c.id) AS clases_totales
@@ -232,7 +232,7 @@ app.get('/api/ramos/:id', (req, res) => {
         er.estudiante_id = ?
     GROUP BY 
         r.id;
-  ;
+  `;
 
   db.query(query, [alumnoId], (err, results) => {
     if (err) {
@@ -241,4 +241,3 @@ app.get('/api/ramos/:id', (req, res) => {
     }
     res.json({ ramos: results });
   });
-});
