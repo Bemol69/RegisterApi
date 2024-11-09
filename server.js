@@ -62,25 +62,29 @@ app.post('/api/login-alumno', (req, res) => {
 // Ruta para login de profesor
 app.post('/api/login-profesor', (req, res) => {
   const { usuario, contrasena } = req.body;
-  
+
   if (!usuario || !contrasena) {
     return res.status(400).json({ success: false, message: 'Usuario y contraseña son requeridos' });
   }
 
-  db.query('SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ?', 
-    [usuario, contrasena], 
+  db.query(
+    'SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ? AND perfil = "profesor"',
+    [usuario, contrasena],
     (err, results) => {
       if (err) {
         console.error('Error en login de profesor:', err);
         return res.status(500).json({ success: false, message: 'Error en el servidor' });
       }
       if (results.length > 0) {
-        res.json({ success: true, usuario: results[0] });
+        // Enviar `profesorId` (que es `results[0].id`) en la respuesta
+        res.json({ success: true, profesorId: results[0].id });
       } else {
         res.json({ success: false, message: 'Credenciales incorrectas' });
       }
-  });
+    }
+  );
 });
+
 
 // Ruta para obtener los datos de un profesor
 app.get('/api/profesores/:id', (req, res) => {
