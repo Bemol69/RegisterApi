@@ -212,32 +212,34 @@ app.get('/api/ramos/:alumnoId', (req, res) => {
 
 
 
-
-// Ruta para obtener los ramos y clases totales del alumno
+// Endpoint para obtener ramos, clases totales y clases asistidas
 app.get('/api/ramos/:id', (req, res) => {
   const alumnoId = req.params.id;
-  
-  // Consulta SQL para obtener ramos y clases totales
-  const query = `
+
+  const query = 
     SELECT 
         r.nombre_ramo,
-        COUNT(c.id) AS clases_totales
+        COUNT(DISTINCT c.id) AS clases_totales,
+        COUNT(DISTINCT a.id) AS clases_asistidas
     FROM 
         ramos r
     JOIN 
         estudiante_ramos er ON r.id = er.ramo_id
     JOIN 
         clases c ON r.id = c.ramo_id
+    LEFT JOIN 
+        asistencias a ON c.id = a.clase_id AND a.estudiante_id = ?
     WHERE 
         er.estudiante_id = ?
     GROUP BY 
         r.id;
-  `;
+  ;
 
-  db.query(query, [alumnoId], (err, results) => {
+  db.query(query, [alumnoId, alumnoId], (err, results) => {
     if (err) {
       console.error('Error al obtener los ramos del alumno:', err);
       return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
     }
     res.json({ ramos: results });
   });
+});
