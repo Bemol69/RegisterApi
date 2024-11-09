@@ -1,149 +1,84 @@
-const express = require('express');
-const mysql = require('mysql');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
-const app = express();
-const port = process.env.PORT || 3000;
+@Injectable({
+  providedIn: 'root'
+})
+export class UsuarioService {
+  private apiUrl = 'https://app-204edef5-5c42-4d2e-9cbe-32596723ac54.cleverapps.io/api';
 
-app.use(cors());
-app.use(bodyParser.json());
 
-let db = mysql.createPool({
-  host: process.env.MYSQL_ADDON_HOST || 'btobfr8tsydxjfr145sr-mysql.services.clever-cloud.com',
-  user: process.env.MYSQL_ADDON_USER || 'udz2sujon3ngyznn',
-  password: process.env.MYSQL_ADDON_PASSWORD || 'RI9uUntNUwrdGkjdkALk',
-  database: process.env.MYSQL_ADDON_DB || 'btobfr8tsydxjfr145sr',
-  port: process.env.MYSQL_ADDON_PORT || 3306,
-  connectionLimit: 10
-});
+  constructor(private http: HttpClient) {}
 
-function handleDisconnect() {
-  db = mysql.createPool({
-    host: process.env.MYSQL_ADDON_HOST || 'btobfr8tsydxjfr145sr-mysql.services.clever-cloud.com',
-    user: process.env.MYSQL_ADDON_USER || 'udz2sujon3ngyznn',
-    password: process.env.MYSQL_ADDON_PASSWORD || 'RI9uUntNUwrdGkjdkALk',
-    database: process.env.MYSQL_ADDON_DB || 'btobfr8tsydxjfr145sr',
-    port: process.env.MYSQL_ADDON_PORT || 3306,
-    connectionLimit: 10
-  });
-
-  db.getConnection((err) => {
-    if (err) {
-      console.error('Error reconectando a la base de datos:', err);
-      setTimeout(handleDisconnect, 2000);
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = 'Ocurrió un error desconocido';
+    if (error.error instanceof ErrorEvent) {
+      // Error del lado del cliente
+      errorMessage = Error: ${error.error.message};
     } else {
-      console.log('Reconectado a MySQL en Clever Cloud');
+      // El backend retornó un código de error
+      errorMessage = Código de error ${error.status},  +
+                     mensaje: ${error.error.message || error.statusText};
     }
-  });
+    console.error(errorMessage);
+    return throwError(errorMessage);
+  }
+
+  loginAlumno(usuario: string, correo: string, rut: string): Observable<any> {
+    return this.http.post(${this.apiUrl}/login-alumno, { usuario, correo_institucional: correo, rut })
+      .pipe(
+        catchError(error => {
+          console.error('Error details:', error);
+          if (error.error instanceof ErrorEvent) {
+            console.error('Client side error:', error.error.message);
+          } else {
+            console.error(Server side error: ${error.status} ${error.message});
+          }
+          return throwError('Ocurrió un error al conectar con el servidor. Por favor, intente nuevamente.');
+        })
+      );
+  }
+
+  loginProfesor(usuario: string, contrasena: string): Observable<any> {
+    return this.http.post(${this.apiUrl}/login-profesor, { usuario, contrasena })
+      .pipe(
+        tap(response => console.log('Respuesta del servidor:', response)),
+        catchError(this.handleError)
+      );
+  }
+
+  registroProfesor(correo: string, rut: string, contrasena: string): Observable<any> {
+    return this.http.post(${this.apiUrl}/registro-profesor, { correo_institucional: correo, rut, contrasena })
+      .pipe(
+        tap(response => console.log('Respuesta del servidor:', response)),
+        catchError(this.handleError)
+      );
+  }
+
+
+  obtenerAlumno(id: number): Observable<any> {
+    return this.http.get(${this.apiUrl}/alumno/${id}).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+ // Nueva función para obtener los ramos del alumno
+ obtenerRamos(alumnoId: number): Observable<any> {
+   return this.http.get<any>(${this.apiUrl}/ramos/${alumnoId});
+ }
+
+
+ obtenerRamosYClasesTotales(alumnoId: number): Observable<any> {
+  return this.http.get<any>(${this.apiUrl}/ramos/${alumnoId});  // Asegúrate de que la URL esté correcta
 }
 
-db.on('error', (err) => {
-  console.error('Error de base de datos:', err);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-    handleDisconnect();
-  } else {
-    throw err;
-  }
-});
+  // Cambiar el tipo de 'id' a 'number' en el método obtenerAsistencia
+obtenerAsistencia(id: number): Observable<any> {
+  return this.http.get<any>(${this.apiUrl}/asistencia/${id});
+}
 
-app.get('/', (req, res) => {
-  res.json({ message: 'API funcionando correctamente' });
-});
 
-app.post('/api/login-alumno', (req, res) => {
-  const { usuario, correo_institucional, rut } = req.body;
-  
-  if (!usuario || !correo_institucional || !rut) {
-    return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' });
-  }
 
-  db.query('SELECT * FROM usuarios WHERE usuario = ? AND correo_institucional = ? AND rut = ?', 
-    [usuario, correo_institucional, rut], 
-    (err, results) => {
-      if (err) {
-        console.error('Error en login de alumno:', err);
-        return res.status(500).json({ success: false, message: 'Error en el servidor' });
-      }
-      res.json(results.length > 0 ? { success: true, usuario: results[0] } : { success: false, message: 'Credenciales incorrectas' });
-  });
-});
-
-app.post('/api/registro-profesor', (req, res) => {
-  const { rut, correo_institucional, contrasena } = req.body;
-  
-  if (!rut || !correo_institucional || !contrasena) {
-    return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' });
-  }
-
-  db.query('SELECT * FROM usuarios WHERE rut = ? AND correo_institucional = ? AND perfil = "profesor"', 
-    [rut, correo_institucional], 
-    (err, results) => {
-      if (err) {
-        console.error('Error en la consulta:', err);
-        return res.status(500).json({ success: false, message: 'Error interno del servidor' });
-      }
-      if (results.length > 0) {
-        db.query('UPDATE usuarios SET contrasena = ? WHERE rut = ? AND correo_institucional = ?', 
-          [contrasena, rut, correo_institucional], 
-          (updateErr) => {
-            if (updateErr) {
-              console.error('Error al actualizar:', updateErr);
-              return res.status(500).json({ success: false, message: 'Error al actualizar la contraseña' });
-            }
-            res.json({ success: true, message: 'Registro exitoso' });
-          });
-      } else {
-        res.status(404).json({ success: false, message: 'Profesor no encontrado. Verifique RUT y correo institucional.' });
-      }
-  });
-});
-
-app.post('/api/login-profesor', (req, res) => {
-  const { usuario, contrasena } = req.body;
-  
-  if (!usuario || !contrasena) {
-    return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' });
-  }
-
-  db.query('SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ? AND perfil = "profesor"', 
-    [usuario, contrasena], 
-    (err, results) => {
-      if (err) {
-        console.error('Error en login de profesor:', err);
-        return res.status(500).json({ success: false, message: 'Error en el servidor' });
-      }
-      res.json(results.length > 0 ? { success: true, usuario: results[0] } : { success: false, message: 'Credenciales incorrectas' });
-  });
-});
-
-// Rutas adicionales para manejar la asistencia y ramos de los alumnos
-app.get('/api/alumno/:id', (req, res) => {
-  const { id } = req.params;
-  
-  db.query('SELECT * FROM usuarios WHERE id = ? AND perfil = "alumno"', [id], (err, results) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error al obtener los datos del alumno' });
-    }
-    res.json(results.length > 0 ? { success: true, alumno: results[0] } : { success: false, message: 'Alumno no encontrado' });
-  });
-});
-
-app.get('/api/ramos/:alumnoId', (req, res) => {
-  const { alumnoId } = req.params;
-
-  db.query('SELECT r.*, COUNT(c.id) AS clases_totales, SUM(a.asistencia = 1) AS clases_asistidas FROM ramos r ' +
-    'JOIN clases c ON c.ramo_id = r.id ' +
-    'LEFT JOIN asistencia a ON a.clase_id = c.id ' +
-    'WHERE r.alumno_id = ? GROUP BY r.id', [alumnoId], (err, results) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error al obtener los ramos' });
-    }
-    res.json({ success: true, ramos: results });
-  });
-});
-
-// Inicio del servidor
-app.listen(port, () => {
-  console.log(`Servidor escuchando en el puerto ${port}`);
-});
+}
