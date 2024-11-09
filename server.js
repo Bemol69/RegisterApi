@@ -82,6 +82,25 @@ app.post('/api/login-profesor', (req, res) => {
   });
 });
 
+// Ruta para obtener los datos de un profesor
+app.get('/api/profesores/:id', (req, res) => {
+  const profesorId = req.params.id;
+
+  // Aquí obtienes los datos del profesor desde la base de datos
+  db.query('SELECT * FROM usuarios WHERE id = ? AND perfil = "profesor"', [profesorId], (err, results) => {
+    if (err) {
+      console.error('Error al obtener datos del profesor:', err);
+      return res.status(500).send('Error en el servidor');
+    }
+
+    if (results.length > 0) {
+      res.json({ profesor: results[0] }); // Envía los datos del profesor
+    } else {
+      res.status(404).send('Profesor no encontrado');
+    }
+  });
+});
+
 // Ruta para obtener la información del alumno
 app.get('/api/alumno/:id', (req, res) => {
   const alumnoId = req.params.id;
