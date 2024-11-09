@@ -130,3 +130,24 @@ app.get('/api/ramos/:alumnoId', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
 });
+
+
+// Ruta para obtener la asistencia del alumno
+app.get('/api/asistencia/:alumnoId', (req, res) => {
+  const alumnoId = req.params.alumnoId;
+
+  const query = 
+    'SELECT c.nombre_clase, r.nombre_ramo, a.fecha, a.estado ' +
+    'FROM asistencias a ' +
+    'JOIN clases c ON a.clase_id = c.id ' +
+    'JOIN ramos r ON a.ramo_id = r.id ' +
+    'WHERE a.estudiante_id = ? AND a.estado = "asistido"';
+
+  db.query(query, [alumnoId], (err, results) => {
+    if (err) {
+      console.error('Error al obtener la asistencia del alumno:', err);
+      return res.status(500).json({ error: 'Hubo un error al obtener la asistencia' });
+    }
+    res.json({ asistencia: results });
+  });
+});
