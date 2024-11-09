@@ -56,17 +56,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'API funcionando correctamente' });
 });
 
-// Ruta para obtener todos los usuarios
-app.get('/api/usuarios', (req, res) => {
-  db.query('SELECT * FROM usuarios', (err, results) => {
-    if (err) {
-      console.error('Error al obtener usuarios:', err);
-      return res.status(500).json({ success: false, message: 'Error al obtener usuarios' });
-    }
-    res.json(results);
-  });
-});
-
 // Ruta para login de alumno
 app.post('/api/login-alumno', (req, res) => {
   const { usuario, correo_institucional, rut } = req.body;
@@ -144,32 +133,12 @@ app.post('/api/login-profesor', (req, res) => {
   });
 });
 
-// Iniciar el servidor
-app.listen(port, '0.0.0.0', () => {
-  console.log(Servidor escuchando en el puerto ${port});
-});
-
-// Manejo de errores no capturados
-process.on('uncaughtException', (err) => {
-  console.error('Error no capturado:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Rechazo no manejado en:', promise, 'razón:', reason);
-});
-
-
-
-
-
-
-
 // Ruta para obtener la información del alumno
 app.get('/api/alumno/:id', (req, res) => {
   const alumnoId = req.params.id;
 
   // Obtener el nombre completo y la carrera del alumno
-  const alumnoQuery = SELECT nombre_completo, carrera FROM usuarios WHERE id = ?;
+  const alumnoQuery = 'SELECT nombre_completo, carrera FROM usuarios WHERE id = ?';
   db.query(alumnoQuery, [alumnoId], (err, alumnoResults) => {
     if (err) {
       console.error('Error al obtener datos del alumno:', err);
@@ -188,51 +157,26 @@ app.get('/api/alumno/:id', (req, res) => {
   });
 });
 
-
-// Ruta para obtener los ramos del alumno
-app.get('/api/ramos/:alumnoId', (req, res) => {
-  const alumnoId = req.params.alumnoId;
-
-  const query = 
-    SELECT r.nombre_ramo
-    FROM ramos r
-    JOIN estudiante_ramos er ON r.id = er.ramo_id
-    WHERE er.estudiante_id = ?;
-
- db.query(query, [alumnoId], (err, result) => {
-  if (err) {
-    console.error('Error al obtener los ramos', err); // Esta línea debería mostrar el error en el log del servidor
-    return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
-  }
-  res.json({ ramos: result });
-});
-});
-
-
-
-
-
-
-// Endpoint para obtener ramos y clases totales
+// Ruta para obtener los ramos y clases totales
 app.get('/api/ramos/:id', (req, res) => {
   const alumnoId = req.params.id;
   
   // Consulta SQL para obtener ramos y clases totales
-  const query = 
+  const query = `
     SELECT 
-        r.nombre_ramo,
-        COUNT(c.id) AS clases_totales
+      r.nombre_ramo,
+      COUNT(c.id) AS clases_totales
     FROM 
-        ramos r
+      ramos r
     JOIN 
-        estudiante_ramos er ON r.id = er.ramo_id
+      estudiante_ramos er ON r.id = er.ramo_id
     JOIN 
-        clases c ON r.id = c.ramo_id
+      clases c ON r.id = c.ramo_id
     WHERE 
-        er.estudiante_id = ?
+      er.estudiante_id = ?
     GROUP BY 
-        r.id;
-  ;
+      r.id;
+  `;
 
   db.query(query, [alumnoId], (err, results) => {
     if (err) {
@@ -241,4 +185,18 @@ app.get('/api/ramos/:id', (req, res) => {
     }
     res.json({ ramos: results });
   });
+});
+
+// Iniciar el servidor
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Servidor escuchando en el puerto ${port}`);
+});
+
+// Manejo de errores no capturados
+process.on('uncaughtException', (err) => {
+  console.error('Error no capturado:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Rechazo no manejado en:', promise, 'razón:', reason);
 });
