@@ -231,6 +231,19 @@ app.get('/api/ramos-profesor/:profesorId', (req, res) => {
   });
 });
 
+// Ruta para registrar la asistencia del alumno cuando escanea el QR
+app.post('/api/registrar-asistencia', (req, res) => {
+  const { clase_id, estudiante_id } = req.body;
+
+  const query = `INSERT INTO asistencias (clase_id, estudiante_id, estado) VALUES (?, ?, 'asistido')`;
+  db.query(query, [clase_id, estudiante_id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error al registrar la asistencia' });
+    }
+    res.json({ message: 'Asistencia registrada correctamente' });
+  });
+});
+
 // Inicia el servidor
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
