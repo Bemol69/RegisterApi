@@ -59,6 +59,38 @@ app.post('/api/login-alumno', (req, res) => {
   });
 });
 
+// Ruta para registro de profesor
+app.post('/api/registro-profesor', (req, res) => {
+  const { rut, correo_institucional, contrasena } = req.body;
+  
+  if (!rut || !correo_institucional || !contrasena) {
+    return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' });
+  }
+
+  db.query('SELECT * FROM usuarios WHERE rut = ? AND correo_institucional = ? AND perfil = "profesor"', 
+    [rut, correo_institucional], 
+    (err, results) => {
+      if (err) {
+        console.error('Error en la consulta:', err);
+        return res.status(500).json({ success: false, message: 'Error interno del servidor' });
+      }
+      if (results.length > 0) {
+        db.query('UPDATE usuarios SET contrasena = ? WHERE rut = ? AND correo_institucional = ?', 
+          [contrasena, rut, correo_institucional], 
+          (updateErr, updateResult) => {
+            if (updateErr) {
+              console.error('Error al actualizar:', updateErr);
+              return res.status(500).json({ success: false, message: 'Error al actualizar la contraseña' });
+            }
+            res.json({ success: true, message: 'Registro exitoso' });
+          });
+      } else {
+        res.status(404).json({ success: false, message: 'Profesor no encontrado. Verifique RUT y correo institucional.' });
+      }
+  });
+});
+
+
 // Ruta para login de profesor
 app.post('/api/login-profesor', (req, res) => {
   const { usuario, contrasena } = req.body;
