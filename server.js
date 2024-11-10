@@ -2,6 +2,8 @@ const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const QRCode = require('qrcode');
+
 
 const app = express();
 const port = process.env.PORT || 3000;
