@@ -178,3 +178,58 @@ app.get('/api/asistencia/:alumnoId', (req, res) => {
     res.json({ asistencia: results });
   });
 });
+
+
+
+
+
+
+
+
+// Ruta para obtener los ramos del profesor
+app.get('/api/ramos-profesor/:profesorId', (req, res) => {
+  const profesorId = req.params.profesorId;
+
+  const query = `
+    SELECT r.id, r.nombre_ramo
+    FROM ramos r
+    JOIN profesores_ramos pr ON r.id = pr.ramo_id
+    WHERE pr.profesor_id = ?;
+  `;
+
+  db.query(query, [profesorId], (err, results) => {
+    if (err) {
+      console.error('Error al obtener los ramos del profesor:', err);
+      return res.status(500).json({ error: 'Hubo un error al obtener los ramos' });
+    }
+    res.json(results);
+  });
+});
+
+// Ruta para crear una clase
+app.post('/api/crear-clase', (req, res) => {
+  const { ramo_id, profesor_id, fecha } = req.body;
+
+  const query = `
+    INSERT INTO clases (ramo_id, profesor_id, fecha)
+    VALUES (?, ?, ?);
+  `;
+
+  db.query(query, [ramo_id, profesor_id, fecha], (err, results) => {
+    if (err) {
+      console.error('Error al crear la clase:', err);
+      return res.status(500).json({ error: 'Hubo un error al crear la clase' });
+    }
+    res.json({ clase_id: results.insertId });
+  });
+});
+
+// Ruta para generar el código QR
+app.post('/api/generar-qr', (req, res) => {
+  const { command } = req.body;
+
+  const qrCode = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(command)}&size=150x150`;
+
+  res.json({ qr_code_url: qrCode });
+});
+
